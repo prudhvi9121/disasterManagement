@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import io from "socket.io-client";
 
-const API = "http://localhost:5000";
-const socket = io(API);
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const socket = io(API_URL);
 
 const mockUsers = {
   netrunnerX: { id: 'netrunnerX', role: 'admin', name: 'Admin User' },
@@ -30,7 +30,7 @@ export default function App() {
     setLoading(l => ({ ...l, disasters: true }));
     setError("");
     try {
-      const res = await fetch(`${API}/disasters`);
+      const res = await fetch(`${API_URL}/disasters`);
       if (!res.ok) throw new Error("Failed to fetch disasters");
       setDisasters(await res.json());
     } catch (err) {
@@ -72,9 +72,9 @@ export default function App() {
     try {
       const checkResponse = (res) => { if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`); return res.json(); };
       const [r, s, u] = await Promise.all([
-        fetch(`${API}/disasters/${d.id}/reports`).then(checkResponse),
-        fetch(`${API}/disasters/${d.id}/social-media`).then(checkResponse),
-        fetch(`${API}/disasters/${d.id}/official-updates`).then(checkResponse)
+        fetch(`${API_URL}/disasters/${d.id}/reports`).then(checkResponse),
+        fetch(`${API_URL}/disasters/${d.id}/social-media`).then(checkResponse),
+        fetch(`${API_URL}/disasters/${d.id}/official-updates`).then(checkResponse)
       ]);
       setReports(r); setSocial(s); setUpdates(u);
     } catch (err) {
@@ -89,7 +89,7 @@ export default function App() {
     setLoading(l => ({ ...l, form: true })); setError("");
     try {
       const method = form.id ? "PUT" : "POST";
-      const url = form.id ? `${API}/disasters/${form.id}` : `${API}/disasters`;
+      const url = form.id ? `${API_URL}/disasters/${form.id}` : `${API_URL}/disasters`;
       const res = await fetch(url, {
         method, headers: { "Content-Type": "application/json", "x-user-id": currentUser.id },
         body: JSON.stringify({ ...form, tags: form.tags.split(",").map(t => t.trim()) })
@@ -105,7 +105,7 @@ export default function App() {
   const deleteDisaster = async (id) => {
     setLoading(l => ({ ...l, [`delete_${id}`]: true })); setError("");
     try {
-      const res = await fetch(`${API}/disasters/${id}`, { method: "DELETE", headers: { "x-user-id": currentUser.id } });
+      const res = await fetch(`${API_URL}/disasters/${id}`, { method: "DELETE", headers: { "x-user-id": currentUser.id } });
       if (!res.ok) throw new Error("Failed to delete disaster");
       setSelected(null);
       await fetchDisasters();
@@ -115,7 +115,7 @@ export default function App() {
   const doGeocode = async () => {
     if (!selected?.description) return; setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/geocode`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description: selected.description }) });
+      const res = await fetch(`${API_URL}/geocode`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description: selected.description }) });
       if (!res.ok) throw new Error("Geocoding failed");
       setGeocode(await res.json());
     } catch (err) { setError(err.message); } finally { setLoading(false); }
@@ -124,7 +124,7 @@ export default function App() {
   const submitReport = async (e) => {
     e.preventDefault(); if (!selected) return; setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/disasters/${selected.id}/reports`, {
+      const res = await fetch(`${API_URL}/disasters/${selected.id}/reports`, {
         method: "POST", headers: { "Content-Type": "application/json", "x-user-id": currentUser.id },
         body: JSON.stringify({ content: e.target.content.value, image_url: e.target.image_url.value })
       });
@@ -138,7 +138,7 @@ export default function App() {
   const verifyImage = async () => {
     if (!selected || !imageUrl) return; setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/disasters/${selected.id}/verify-image`, {
+      const res = await fetch(`${API_URL}/disasters/${selected.id}/verify-image`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image_url: imageUrl })
       });
       if (!res.ok) throw new Error("Image verification failed");
@@ -149,7 +149,7 @@ export default function App() {
   const fetchNearbyResources = async (lat, lon) => {
     if (!selected) return; setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/disasters/${selected.id}/resources?lat=${lat}&lon=${lon}`);
+      const res = await fetch(`${API_URL}/disasters/${selected.id}/resources?lat=${lat}&lon=${lon}`);
       if (!res.ok) throw new Error("Failed to fetch resources");
       setResources(await res.json());
     } catch (err) { setError(err.message); } finally { setLoading(false); }
@@ -159,7 +159,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-gray-900 text-gray-200 font-sans">
       <header className="flex-shrink-0 bg-gray-800 border-b border-gray-700">
         <div className="h-16 flex items-center justify-between px-6">
-          <h1 className="text-lg font-bold text-white">Midnight</h1>
+          <h1 className="text-lg font-bold text-white">Disaster Response Platform</h1>
           <div className="flex items-center gap-3">
             <label htmlFor="user" className="text-sm font-medium text-gray-400">Acting as:</label>
             <select id="user" value={currentUser.id} onChange={e => { setSelected(null); setCurrentUser(mockUsers[e.target.value]); }}

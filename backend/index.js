@@ -14,8 +14,24 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// Middleware
-app.use(cors());
+// CORS configuration
+const whitelist = ['http://localhost:5173', 'http://localhost:3000'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow vercel deployment previews and production domain
+    if (/(^https?:\/\/localhost(:\d+)?$)|(\.vercel\.app$)/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(morgan('dev'));
 app.use(bodyParser.json());
 
